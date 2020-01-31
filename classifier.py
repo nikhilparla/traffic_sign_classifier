@@ -1,17 +1,20 @@
 # Load pickled data
+from tensorflow.contrib.layers import flatten
+from sklearn.utils import shuffle
 import pickle
 import numpy as np
 import tensorflow as tf
 import os
+import cv2
 
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 # TODO: Fill this in based on where you saved the training and testing data
 
 training_file = "./traffic-signs-data/train.p"
-validation_file= "./traffic-signs-data/valid.p"
+validation_file = "./traffic-signs-data/valid.p"
 testing_file = "./traffic-signs-data/test.p"
 
 with open(training_file, mode='rb') as f:
@@ -20,7 +23,7 @@ with open(validation_file, mode='rb') as f:
     valid = pickle.load(f)
 with open(testing_file, mode='rb') as f:
     test = pickle.load(f)
-                
+
 X_train, y_train = train['features'], train['labels']
 X_valid, y_valid = valid['features'], valid['labels']
 X_test, y_test = test['features'], test['labels']
@@ -45,12 +48,11 @@ print("Number of testing examples =", n_test)
 print("Image data shape =", image_shape)
 print("Number of classes =", n_classes)
 
-### Preprocess the data here. It is required to normalize the data. Other preprocessing steps could include 
+### Preprocess the data here. It is required to normalize the data. Other preprocessing steps could include
 ### converting to grayscale, etc.
 ### Feel free to use as many code cells as needed.
 X_train_normalized = (X_train - np.float32(128))/np.float32(128)
 
-from sklearn.utils import shuffle
 X_train, y_train = shuffle(X_train, y_train)
 
 EPOCHS = 20
@@ -58,21 +60,23 @@ BATCH_SIZE = 12
 
 # Architecture here.
 ### Feel free to use as many code cells as needed.
-from tensorflow.contrib.layers import flatten
 
+'''
 def dataAug(X_train, y_train):
-	x_new = []
-	y_new = []
-	maxdelta = 10.0;
-	for i in range(0,len(X_train)):
-		x_new.append(tf.image.random_brightness(X_train[i], maxdelta, 20))
-		y_new.append(y_train[i])	# values for the same image
-	return x_new, y_new
+    x_new = []
+    y_new = []
+    maxdelta = 10.0
+    for i in range(0, 1):
+        x_new.append(tf.image.random_brightness(X_train[i], maxdelta, 20))
+        y_new.append(y_train[i])  # values for the same image
+    return np.asarray(x_new), np.asarray(y_new)
 
 print("starting data aug")
 [x_new,y_new]=dataAug(X_train,y_train)
-print(x_new.shape)
-print(y_new.shape)
+print(x_new)
+print(y_new)
+cv2.imshow("data", x_new)
+'''
 
 def LeNet(x):    
     # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
@@ -84,19 +88,27 @@ def LeNet(x):
     # Layer 1: Convolution. Input = 32x32x3 Output = 28x28x6
     conv1_w = tf.Variable(tf.truncated_normal(shape=(5,5,3,6), mean = mu, stddev = sigma))
     conv1_b = tf.Variable(tf.zeros(6))
-    conv1 = tf.nn.conv2d(x, conv1_w, strides=[1,1,1,1], padding='VALID') + conv1_b
+    conv1 = tf.nn.conv2d(x, conv1_w, strides=[1,1,1,1], padding='SAME') + conv1_b
     
     # Activation
     conv1 = tf.nn.relu(conv1)
+
+    # adding an extra layer
+    conv5_w = tf.Variable(tf.truncated_normal(shape=(5,5,6,16), mean = mu, stddev = sigma))
+    conv5_b = tf.Variable(tf.zeros(16))
+    conv5 = tf.nn.conv2d(conv1, conv5_w, strides=[1,1,1,1], padding='VALID') + conv5_b
+        
+    # Ac5ivation
+    conv5 = tf.nn.relu(conv5)
     
     # Pooling - 28x28x6 to 14x14x6
-    conv1 = tf.nn.max_pool(conv1, ksize=[1,2,2,1], strides=[1,2,2,1], padding='VALID')
+    conv5_pool = tf.nn.max_pool(conv5, ksize=[1,2,2,1], strides=[1,2,2,1], padding='VALID')
     
         
     # Layer 2: Convolution.  Output = 10x10x6
-    conv2_w = tf.Variable(tf.truncated_normal(shape=(5,5,6,16), mean = mu, stddev = sigma))
+    conv2_w = tf.Variable(tf.truncated_normal(shape=(5,5,16,16), mean = mu, stddev = sigma))
     conv2_b = tf.Variable(tf.zeros(16))
-    conv2 = tf.nn.conv2d(conv1, conv2_w, strides=[1,1,1,1], padding='VALID') + conv2_b
+    conv2 = tf.nn.conv2d(conv5_pool, conv2_w, strides=[1,1,1,1], padding='VALID') + conv2_b
     
     # Activation
     conv2 = tf.nn.relu(conv2)
@@ -107,18 +119,26 @@ def LeNet(x):
     # Flatten - 5x5x16, Output = 400
     fc0 = flatten(conv2)
     
-    #Layer 3 - Fully connected . Input = 400, output = 120
-    fc1_w = tf.Variable(tf.truncated_normal(shape=(400,120), mean=mu, stddev=sigma))
-    fc1_b = tf.Variable(tf.zeros(120))
+    #Layer 3 - Fully connected . Input = 400, output = 250
+    fc1_w = tf.Variable(tf.truncated_normal(shape=(400,250), mean=mu, stddev=sigma))
+    fc1_b = tf.Variable(tf.zeros(250))
     fc1 = tf.matmul(fc0, fc1_w) + fc1_b
     
     # Activation
     fc1 = tf.nn.relu(fc1)
     
+    fc7_w = tf.Variable(tf.truncated_normal(shape=(250,120), mean=mu, stddev=sigma))
+    fc7_b = tf.Variable(tf.zeros(120))
+    fc7 = tf.matmul(fc1, fc7_w) + fc7_b
+    
+    # Activation
+    fc7 = tf.nn.relu(fc7)
+    
+    
     #Layer 4 - Fully connected . Input = 120, output = 84
     fc2_w = tf.Variable(tf.truncated_normal(shape=(120,84), mean=mu, stddev=sigma))
     fc2_b = tf.Variable(tf.zeros(84))
-    fc2 = tf.matmul(fc1, fc2_w) + fc2_b
+    fc2 = tf.matmul(fc7, fc2_w) + fc2_b
     
     # Activation
     fc2 = tf.nn.relu(fc2)
