@@ -108,13 +108,21 @@ def LeNet(x):
     # Layer 2: Convolution.  Output = 10x10x6
     conv2_w = tf.Variable(tf.truncated_normal(shape=(5,5,16,16), mean = mu, stddev = sigma))
     conv2_b = tf.Variable(tf.zeros(16))
-    conv2 = tf.nn.conv2d(conv5_pool, conv2_w, strides=[1,1,1,1], padding='VALID') + conv2_b
+    conv2 = tf.nn.conv2d(conv5_pool, conv2_w, strides=[1,1,1,1], padding='SAME') + conv2_b
     
     # Activation
     conv2 = tf.nn.relu(conv2)
     
+    conv10_w = tf.Variable(tf.truncated_normal(shape=(5,5,16,16), mean = mu, stddev = sigma))
+    conv10_b = tf.Variable(tf.zeros(16))
+    conv10 = tf.nn.conv2d(conv2, conv10_w, strides=[1,1,1,1], padding='VALID') + conv10_b
+    
+    # Activation
+    conv10 = tf.nn.relu(conv10)
+    
+    
     # Pooling - 10x10x16 to 5x5x16
-    conv2 = tf.nn.max_pool(conv2, ksize=[1,2,2,1], strides=[1,2,2,1], padding='VALID')
+    conv2 = tf.nn.max_pool(conv10, ksize=[1,2,2,1], strides=[1,2,2,1], padding='VALID')
     
     # Flatten - 5x5x16, Output = 400
     fc0 = flatten(conv2)
@@ -158,7 +166,7 @@ one_hot_y = tf.one_hot(y, 43)
 
 # Training Pipeline
 
-rate = 0.001
+rate = 0.0001
 
 logits = LeNet(x)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits=logits)
