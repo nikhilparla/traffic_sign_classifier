@@ -6,6 +6,7 @@ import numpy as np
 import tensorflow as tf
 import os
 import cv2
+from scipy import ndimage, misc
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"   # see issue #152
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -53,13 +54,25 @@ print("Number of classes =", n_classes)
 ### Feel free to use as many code cells as needed.
 X_train_normalized = (X_train - np.float32(128))/np.float32(128)
 
-X_train, y_train = shuffle(X_train, y_train)
+X_train, y_train = shuffle(X_train_normalized, y_train)
 
-EPOCHS = 20
-BATCH_SIZE = 12
+EPOCHS = 100
+BATCH_SIZE = 32
 
 # Architecture here.
 ### Feel free to use as many code cells as needed.
+
+def rotate(X_train, y_train):
+	for i in range(int(len(X_train)/9)):
+		img_30 = ndimage.rotate(X_train[i],30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
+		np.append(X_train,img_30)
+		np.append(y_train,y_train[i])
+	for i in range(int(len(X_train)/9)):
+		img_n30 = ndimage.rotate(X_train[i],-30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
+		np.append(X_train,img_n30)
+		np.append(y_train,y_train[i])
+
+rotate(X_train,y_train)
 
 '''
 def dataAug(X_train, y_train):
@@ -127,6 +140,7 @@ def LeNet(x):
     # Flatten - 5x5x16, Output = 400
     fc0 = flatten(conv2)
     
+    
     #Layer 3 - Fully connected . Input = 400, output = 250
     fc1_w = tf.Variable(tf.truncated_normal(shape=(400,250), mean=mu, stddev=sigma))
     fc1_b = tf.Variable(tf.zeros(250))
@@ -166,7 +180,7 @@ one_hot_y = tf.one_hot(y, 43)
 
 # Training Pipeline
 
-rate = 0.0001
+rate = 0.0004
 
 logits = LeNet(x)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits=logits)
