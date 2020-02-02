@@ -40,14 +40,10 @@ n_test = len(X_test)
 
 # TODO: What's the shape of an traffic sign image?
 image_shape = np.shape(X_train[0])
+print(image_shape)
 
 # TODO: How many unique classes/labels there are in the dataset.
 n_classes = len(np.unique(y_train))
-
-print("Number of training examples =", n_train)
-print("Number of testing examples =", n_test)
-print("Image data shape =", image_shape)
-print("Number of classes =", n_classes)
 
 ### Preprocess the data here. It is required to normalize the data. Other preprocessing steps could include
 ### converting to grayscale, etc.
@@ -62,34 +58,91 @@ BATCH_SIZE = 32
 # Architecture here.
 ### Feel free to use as many code cells as needed.
 
-def rotate(X_train, y_train):
-	for i in range(int(len(X_train)/9)):
+def rotate():
+	print("**************Calling rotate function")
+	global X_train
+	global y_train
+	imgs = []
+	length = int(len(X_train)/5)
+	print("************** shape = " ,X_train.shape)
+	print("************** y shape = " ,y_train.shape)
+	for i in range(length):
 		img_30 = ndimage.rotate(X_train[i],30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
-		np.append(X_train,img_30)
-		np.append(y_train,y_train[i])
-	for i in range(int(len(X_train)/9)):
+		imgs.append(img_30)
+		y_train = np.append(y_train,y_train[i])
+	print("*************** 30 deg rotation finished")
+	npa = np.asarray(imgs)
+	X_train = np.concatenate((X_train,npa), axis=0)
+	print("************** shape 2 = " ,X_train.shape)
+	print("************** y shape 2= " ,y_train.shape)
+	
+	X_train, y_train = shuffle(X_train, y_train)
+	
+	imgs = []
+	for i in range(length):
 		img_n30 = ndimage.rotate(X_train[i],-30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
-		np.append(X_train,img_n30)
-		np.append(y_train,y_train[i])
+		imgs.append(img_30)
+		y_train = np.append(y_train,y_train[i])
+	npa = np.asarray(imgs)
+	X_train = np.concatenate((X_train,npa), axis=0)
 
-rotate(X_train,y_train)
+	print("**************** -30 deg rotation finished")
+		
+rotate()
+X_train, y_train = shuffle(X_train, y_train)
 
-'''
-def dataAug(X_train, y_train):
-    x_new = []
-    y_new = []
-    maxdelta = 10.0
-    for i in range(0, 1):
-        x_new.append(tf.image.random_brightness(X_train[i], maxdelta, 20))
-        y_new.append(y_train[i])  # values for the same image
-    return np.asarray(x_new), np.asarray(y_new)
+def sharpen():
+	print("**************Calling rotate function")
+	global X_train
+	global y_train
+	imgs = []
+	length = int(len(X_train)/5)
+	alpha = 30
+	
+	for i in range(length):
+		blurred_f  = ndimage.gaussian_filter(X_train[i], 3)
+		filter_blurred_f = ndimage.gaussian_filter(blurred_f, 1)
+		img_sharp = blurred_f + alpha * (blurred_f - filter_blurred_f)
+		imgs.append(img_sharp)
+		y_train = np.append(y_train,y_train[i])
+	print("*************** shapening finished")
+	npa = np.asarray(imgs)
+	X_train = np.concatenate((X_train,npa), axis=0)
 
-print("starting data aug")
-[x_new,y_new]=dataAug(X_train,y_train)
-print(x_new)
-print(y_new)
-cv2.imshow("data", x_new)
-'''
+sharpen()
+	
+
+def increase_brightness(img, value=30):
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    h, s, v = cv2.split(hsv)
+
+    lim = 255 - value
+    v[v > lim] = 255
+    v[v <= lim] += value
+
+    final_hsv = cv2.merge((h, s, v))
+    img = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    return img
+
+def call_brightness():	
+	global X_train
+	global y_train
+	for i in range(10000, 20000):
+		if(i%100 == 0):
+			print("completed ",(i/100 - 100 + 1), " percent" )
+		frame = increase_brightness(X_train[i],20)
+		X_train = np.append(X_train,frame)
+		y_train = np.append(y_train,y_train[i])
+
+#call_brightness()
+
+n_train = len(X_train)
+print("****************************************")
+print("Number of training examples =", n_train)
+print("Number of testing examples =", n_test)
+print("Image data shape =", image_shape)
+print("Number of classes =", n_classes)
+print("****************************************")
 
 def LeNet(x):    
     # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
@@ -180,7 +233,7 @@ one_hot_y = tf.one_hot(y, 43)
 
 # Training Pipeline
 
-rate = 0.0004
+rate = 0.0005
 
 logits = LeNet(x)
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=one_hot_y, logits=logits)
