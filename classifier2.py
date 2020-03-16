@@ -52,11 +52,13 @@ X_train_normalized = (X_train - np.float32(128))/np.float32(128)
 
 X_train, y_train = shuffle(X_train_normalized, y_train)
 
-EPOCHS = 25
+EPOCHS = 50
 BATCH_SIZE = 128
 
 # Architecture here.
 ### Feel free to use as many code cells as needed.
+
+from random import randrange
 
 def rotate():
 	print("**************Calling rotate function")
@@ -67,9 +69,10 @@ def rotate():
 	print("************** shape = " ,X_train.shape)
 	print("************** y shape = " ,y_train.shape)
 	for i in range(length):
-		img_30 = ndimage.rotate(X_train[i],30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
+		irand = randrange(0,n_train)
+		img_30 = ndimage.rotate(X_train[irand],30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
 		imgs.append(img_30)
-		y_train = np.append(y_train,y_train[i])
+		y_train = np.append(y_train,y_train[irand])
 	print("*************** 30 deg rotation finished")
 	npa = np.asarray(imgs)
 	X_train = np.concatenate((X_train,npa), axis=0)
@@ -80,16 +83,17 @@ def rotate():
 	
 	imgs = []
 	for i in range(length):
-		img_n30 = ndimage.rotate(X_train[i],-30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
+		irand = randrange(0,n_train)
+		img_n30 = ndimage.rotate(X_train[irand],-30,reshape=False)	# the new pic doesnt reshape to fit the boundaries
 		imgs.append(img_30)
-		y_train = np.append(y_train,y_train[i])
+		y_train = np.append(y_train,y_train[irand])
 	npa = np.asarray(imgs)
 	X_train = np.concatenate((X_train,npa), axis=0)
 
 	print("**************** -30 deg rotation finished")
 		
-#rotate()
-#X_train, y_train = shuffle(X_train, y_train)
+rotate()
+X_train, y_train = shuffle(X_train, y_train)
 
 def sharpen():
 	print("**************Calling rotate function")
